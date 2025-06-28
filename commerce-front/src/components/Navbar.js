@@ -7,7 +7,7 @@
     const [nome, setNome] = useState('');
     const [senha, setSenha] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
-    const [showWelcome, setShowWelcome] = useState(false); // mensagem rápida após login
+    const [showWelcome, setShowWelcome] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -24,11 +24,11 @@
         localStorage.setItem('adminAuth', 'true');
         setIsAdmin(true);
         setShowModal(false);
-        setShowWelcome(true); // mostra mensagem
+        setShowWelcome(true);
         setNome('');
         setSenha('');
         setTimeout(() => {
-            setShowWelcome(false); // esconde após alguns segundos
+            setShowWelcome(false);
         }, 4000);
         } else {
         alert('Credenciais inválidas');
@@ -50,11 +50,22 @@
         >
             <div className="container">
             <Link
-                className="navbar-brand fw-bold text-warning"
                 to="/"
+                className="navbar-brand fw-bold text-white"
                 style={{ fontSize: '1.6rem', letterSpacing: '2px' }}
             >
-                Maravilhas Burguer
+                Maravilhas{' '}
+                <span
+                style={{
+                    color: '#ffc107',
+                    textShadow: '0 0 5px #ffc107',
+                    fontWeight: '900',
+                    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                    letterSpacing: '3px',
+                }}
+                >
+                Burguer
+                </span>
             </Link>
 
             <button
@@ -96,10 +107,7 @@
 
                 {isAdmin && (
                     <>
-                    <li
-                        className="nav-item d-flex align-items-center text-warning"
-                        style={{ fontSize: '0.9rem' }}
-                    >
+                    <li className="nav-item d-flex align-items-center text-warning" style={{ fontSize: '0.9rem' }}>
                         <span className="me-2">👤 Admin ativo</span>
                         <button
                         className="btn btn-sm btn-outline-warning"
@@ -111,11 +119,7 @@
                         </button>
                     </li>
                     <li className="nav-item">
-                        <Link
-                        to="/admin"
-                        className="btn btn-sm btn-warning"
-                        style={{ fontSize: '0.8rem' }}
-                        >
+                        <Link to="/admin" className="btn btn-sm btn-warning" style={{ fontSize: '0.8rem' }}>
                         Painel Admin
                         </Link>
                     </li>
@@ -126,7 +130,7 @@
             </div>
         </nav>
 
-        {/* ✅ Mensagem de boas-vindas após login */}
+        {/* Mensagem de boas-vindas após login */}
         {showWelcome && (
             <div
             className="alert alert-warning text-dark text-center shadow"
@@ -152,10 +156,7 @@
             tabIndex="-1"
             onClick={() => setShowModal(false)}
             >
-            <div
-                className="modal-dialog modal-dialog-centered"
-                onClick={(e) => e.stopPropagation()}
-            >
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-content bg-dark text-white border-warning">
                 <div className="modal-header">
                     <h5 className="modal-title text-warning">Login Admin</h5>
@@ -200,3 +201,4 @@
         </>
     );
     }
+    // This code defines a responsive navigation bar with a login modal for admin access.

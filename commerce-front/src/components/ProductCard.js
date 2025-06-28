@@ -50,7 +50,7 @@
             src={product.image}
             alt={product.name}
             className="card-img-top"
-            style={{ height: '180px', objectFit: 'cover', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }}
+            style={{ height: '300px', objectFit: 'cover', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }}
         />
 
         <div className="card-body d-flex flex-column p-3">

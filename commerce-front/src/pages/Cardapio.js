@@ -18,6 +18,13 @@
         price: 35.0,
         image: '/img/CheeseburguerDuplo.svg',
         },
+        {
+        id: 3,
+        name: 'Big Master Burger',
+        description: 'Dois hambúrgueres, queijo extra e bacon.',
+        price: 40.0,
+        image: '/img/X-tudo.svg',
+        },
     ],
     porcoes: [
         {
