@@ -15,11 +15,13 @@
     const audioRef = useRef(null);
 
     useEffect(() => {
-        const socket = io(process.env.REACT_APP_API_URL, {
-            transports: ['websocket'],
+        const API_URL = process.env.REACT_APP_API_URL;
+
+        const socket = io(API_URL, {
+        transports: ['polling', 'websocket'], // fallback para polling ajuda em conexões instáveis
         });
 
-        fetch(process.env.REACT_APP_API_URL + '/pedidos')
+        fetch(`${API_URL}/pedidos`)
         .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) setPedidos(data);
@@ -27,7 +29,8 @@
         })
         .catch(err => console.error('Erro ao buscar pedidos:', err));
 
-        socket.emit('getDashboardData');
+        // Se seu backend usa esse evento, descomente:
+        // socket.emit('getDashboardData');
 
         socket.on('novoPedido', (novo) => {
         setPedidos(prev => [novo, ...prev]);
@@ -37,7 +40,6 @@
             const playPromise = audioRef.current.play();
             if (playPromise !== undefined) {
             playPromise.catch(() => {
-                // Pode falhar se usuário não interagiu ainda
                 console.log('Erro ao tentar reproduzir o som');
             });
             }
@@ -48,13 +50,18 @@
 
         socket.on('pedidoEntregue', (pedidoAtualizado) => {
         setPedidos(prev =>
-            prev.map(p => p._id === pedidoAtualizado._id ? pedidoAtualizado : p)
+            prev.map(p => (p._id === pedidoAtualizado._id ? pedidoAtualizado : p))
         );
         });
 
         socket.on('dashboardAtualizado', (data) => {
         setDashboardData(data);
         });
+
+        // Eventos de debug (opcional):
+        socket.on('connect', () => console.log('Socket conectado:', socket.id));
+        socket.on('connect_error', (err) => console.error('Erro conexão socket:', err));
+        socket.on('disconnect', (reason) => console.log('Socket desconectado:', reason));
 
         return () => {
         socket.off('novoPedido');
@@ -96,7 +103,6 @@
 
         {tela === 'dashboard' && <DashboardResumo data={dashboardData} />}
 
-        {/* Toast de notificação */}
         {toast.show && (
             <div
             className="toast show position-fixed top-0 end-0 m-3"
@@ -119,8 +125,8 @@
             </div>
         )}
 
-        {/* Elemento audio oculto para o som de notificação */}
         <audio ref={audioRef} src="/sounds/notification.mp3" preload="auto" />
         </div>
     );
     }
+    // Note: Ensure you have the audio file at the correct path in your public directory.
