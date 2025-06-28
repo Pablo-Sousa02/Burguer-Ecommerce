@@ -1,4 +1,4 @@
-    import React, { useState } from 'react';
+    import React, { useState, useEffect } from 'react';
     import { Link, useNavigate } from 'react-router-dom';
     import { FaBars } from 'react-icons/fa';
 
@@ -6,18 +6,40 @@
     const [showModal, setShowModal] = useState(false);
     const [nome, setNome] = useState('');
     const [senha, setSenha] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false); // mensagem rápida após login
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const auth = localStorage.getItem('adminAuth');
+        if (auth === 'true') {
+        setIsAdmin(true);
+        }
+    }, []);
 
     function handleLogin(e) {
         e.preventDefault();
 
         if (nome === 'Maravilhasburguer2025' && senha === 'admin') {
         localStorage.setItem('adminAuth', 'true');
+        setIsAdmin(true);
         setShowModal(false);
-        navigate('/admin');
+        setShowWelcome(true); // mostra mensagem
+        setNome('');
+        setSenha('');
+        setTimeout(() => {
+            setShowWelcome(false); // esconde após alguns segundos
+        }, 4000);
         } else {
         alert('Credenciais inválidas');
         }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('adminAuth');
+        setIsAdmin(false);
+        setShowModal(false);
+        navigate('/');
     }
 
     return (
@@ -59,23 +81,71 @@
                     Cardápio
                     </Link>
                 </li>
-                <li className="nav-item">
-                    {/* Botão discreto admin */}
+
+                {!isAdmin && (
+                    <li className="nav-item">
                     <button
-                    className="btn btn-sm btn-outline-warning"
-                    style={{ fontSize: '0.8rem' }}
-                    onClick={() => setShowModal(true)}
+                        className="btn btn-sm btn-outline-warning"
+                        style={{ fontSize: '0.8rem' }}
+                        onClick={() => setShowModal(true)}
                     >
-                    Admin
+                        Admin
                     </button>
-                </li>
+                    </li>
+                )}
+
+                {isAdmin && (
+                    <>
+                    <li
+                        className="nav-item d-flex align-items-center text-warning"
+                        style={{ fontSize: '0.9rem' }}
+                    >
+                        <span className="me-2">👤 Admin ativo</span>
+                        <button
+                        className="btn btn-sm btn-outline-warning"
+                        onClick={handleLogout}
+                        title="Sair"
+                        style={{ padding: '0.15rem 0.5rem' }}
+                        >
+                        ✕
+                        </button>
+                    </li>
+                    <li className="nav-item">
+                        <Link
+                        to="/admin"
+                        className="btn btn-sm btn-warning"
+                        style={{ fontSize: '0.8rem' }}
+                        >
+                        Painel Admin
+                        </Link>
+                    </li>
+                    </>
+                )}
                 </ul>
             </div>
             </div>
         </nav>
 
+        {/* ✅ Mensagem de boas-vindas após login */}
+        {showWelcome && (
+            <div
+            className="alert alert-warning text-dark text-center shadow"
+            style={{
+                position: 'fixed',
+                top: '80px',
+                right: '20px',
+                zIndex: 9999,
+                width: 'auto',
+                animation: 'fadein 0.3s ease-in-out',
+            }}
+            >
+            ✅ Você está conectado como admin. <br />
+            Acesse o <strong>Painel Admin</strong> para gerenciar os pedidos!
+            </div>
+        )}
+
         {/* Modal de Login Admin */}
-        {showModal && (
+        {showModal && !isAdmin && (
             <div
             className="modal fade show"
             style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}
@@ -105,6 +175,7 @@
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         required
+                        autoFocus
                         />
                     </div>
                     <div className="mb-3">
