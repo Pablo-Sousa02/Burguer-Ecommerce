@@ -1,12 +1,32 @@
     import React, { useState } from 'react';
 
+    const MOLHOS_DISPONIVEIS = [
+    'Barbecue',
+    'Mostarda',
+    'Maionese',
+    'Ketchup',
+    'Alho',
+    ];
+
     export default function ProductCard({ product, onAddToCart }) {
     const [quantity, setQuantity] = useState(1);
+    const [molhosOpcionais, setMolhosOpcionais] = useState([]);
+
+    function toggleMolho(molho) {
+        if (molhosOpcionais.includes(molho)) {
+        setMolhosOpcionais(molhosOpcionais.filter(m => m !== molho));
+        } else {
+        if (molhosOpcionais.length < 2) {
+            setMolhosOpcionais([...molhosOpcionais, molho]);
+        }
+        }
+    }
 
     function handleAdd() {
         if (quantity < 1) return;
-        onAddToCart(product, quantity);
+        onAddToCart({ ...product, molhosOpcionais }, quantity);
         setQuantity(1);
+        setMolhosOpcionais([]);
     }
 
     return (
@@ -40,6 +60,24 @@
             <p className="card-text flex-grow-1 mb-3 text-secondary" style={{ fontSize: '0.95rem' }}>
             {product.description}
             </p>
+
+            <div className="mb-3">
+            <div className="text-warning fw-semibold mb-1">Escolha até 2 molhos opcionais:</div>
+            <div className="d-flex flex-wrap gap-2">
+                {MOLHOS_DISPONIVEIS.map(molho => (
+                <label key={molho} className="form-check form-check-inline text-white" style={{ userSelect: 'none' }}>
+                    <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={molhosOpcionais.includes(molho)}
+                    onChange={() => toggleMolho(molho)}
+                    disabled={!molhosOpcionais.includes(molho) && molhosOpcionais.length >= 2}
+                    />
+                    <span className="form-check-label">{molho}</span>
+                </label>
+                ))}
+            </div>
+            </div>
 
             <div className="d-flex align-items-center mb-3">
             <input

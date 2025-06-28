@@ -1,50 +1,109 @@
 import React, { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
 
 export default function DashboardResumo() {
+  // Estados
+  const [pedidos, setPedidos] = useState([]); // todos pedidos
+  const [pedidosEntregues, setPedidosEntregues] = useState([]); // só entregues para o modal
+  const [modalAberto, setModalAberto] = useState(false);
   const [dados, setDados] = useState({
     totalVendas: 0,
     totalPedidos: 0,
     totalEntregues: 0,
-    vendasPorPagamento: {
-      dinheiro: 0,
-      cartao: 0,
-      pix: 0,
-    },
+    vendasPorPagamento: { dinheiro: 0, cartao: 0, pix: 0 },
     ticketMedio: 0,
     totalItensVendidos: 0,
   });
 
-  useEffect(() => {
-    // Aqui vamos buscar do back-end futuramente
-    async function fetchDadosDashboard() {
-      try {
-        // const response = await fetch('/api/admin/dashboard');
-        // const result = await response.json();
-        // setDados(result);
+  // Função para calcular métricas
+  const calcularMetricas = (listaPedidos) => {
+    const totalPedidos = listaPedidos.length;
+    const entregues = listaPedidos.filter(p => p.entregue);
+    const totalEntregues = entregues.length;
+    const totalVendas = entregues.reduce((acc, p) => acc + (p.total || 0), 0);
+    const vendasPorPagamento = { dinheiro: 0, cartao: 0, pix: 0 };
+    let totalItensVendidos = 0;
 
-        // MOCK para testes (remover depois)
-        setDados({
-          totalVendas: 0.0,
-          totalPedidos: 0,
-          totalEntregues: 0,
-          vendasPorPagamento: {
-            dinheiro: 0.0,
-            cartao: 0.0,
-            pix: 0.0,
-          },
-          ticketMedio: 0.0,
-          totalItensVendidos: 0,
-        });
-      } catch (error) {
-        console.error('Erro ao buscar dados do dashboard:', error);
+    entregues.forEach(p => {
+      const forma = p.pagamento?.forma?.toLowerCase() || 'outros';
+      if (vendasPorPagamento.hasOwnProperty(forma)) {
+        vendasPorPagamento[forma] += p.total || 0;
+      } else {
+        vendasPorPagamento.outros = (vendasPorPagamento.outros || 0) + (p.total || 0);
       }
-    }
 
-    fetchDadosDashboard();
+      p.itens?.forEach(item => {
+        totalItensVendidos += item.quantity || 0;
+      });
+    });
+
+    const ticketMedio = totalEntregues > 0 ? totalVendas / totalEntregues : 0;
+
+    setDados({
+      totalVendas,
+      totalPedidos,
+      totalEntregues,
+      vendasPorPagamento,
+      ticketMedio,
+      totalItensVendidos,
+    });
+  };
+
+  // Buscar pedidos do backend
+  const fetchPedidos = async () => {
+  try {
+    const resAndamento = await fetch('http://localhost:5000/pedidos?entregue=false');
+    const pedidosEmAndamento = await resAndamento.json();
+
+    const resEntregues = await fetch('http://localhost:5000/pedidos?entregue=true');
+    const pedidosEntregues = await resEntregues.json();
+
+    const todosPedidos = [...pedidosEmAndamento, ...pedidosEntregues];
+
+    setPedidos(todosPedidos);
+    setPedidosEntregues(pedidosEntregues);
+    calcularMetricas(todosPedidos);
+  } catch (error) {
+    console.error('Erro ao buscar pedidos:', error);
+  }
+};
+
+
+  useEffect(() => {
+    fetchPedidos();
+
+    socket.on('pedidoEntregue', (pedidoAtualizado) => {
+      setPedidos((prevPedidos) => {
+        const novosPedidos = prevPedidos.map(p =>
+          p._id === pedidoAtualizado._id ? pedidoAtualizado : p
+        );
+        setPedidosEntregues(novosPedidos.filter(p => p.entregue));
+        calcularMetricas(novosPedidos);
+        return novosPedidos;
+      });
+    });
+
+    socket.on('novoPedido', (pedidoNovo) => {
+      setPedidos((prevPedidos) => {
+        const novosPedidos = [pedidoNovo, ...prevPedidos];
+        setPedidosEntregues(novosPedidos.filter(p => p.entregue));
+        calcularMetricas(novosPedidos);
+        return novosPedidos;
+      });
+    });
+
+    return () => {
+      socket.off('pedidoEntregue');
+      socket.off('novoPedido');
+      socket.disconnect();
+    };
   }, []);
 
   return (
     <div className="text-white">
+      {/* Cards métricas */}
       <div className="row g-4 mb-4">
         <div className="col-md-4">
           <div className="bg-success bg-opacity-75 p-3 rounded shadow-sm">
@@ -101,7 +160,69 @@ export default function DashboardResumo() {
           </div>
         </div>
       </div>
+
+      {/* Botão para abrir modal de entregues */}
+      <button
+        className="btn btn-outline-light my-3"
+        onClick={() => setModalAberto(true)}
+      >
+        Ver Pedidos Entregues
+      </button>
+
+      {/* Modal */}
+      {modalAberto && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
+          onClick={() => setModalAberto(false)} // fechar ao clicar fora
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+        >
+          <div
+            className="modal-dialog modal-lg"
+            role="document"
+            onClick={e => e.stopPropagation()} // evitar fechar ao clicar dentro
+          >
+            <div className="modal-content bg-dark text-white">
+              <div className="modal-header">
+                <h5 className="modal-title">Pedidos Entregues</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setModalAberto(false)}
+                ></button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {pedidosEntregues.length === 0 ? (
+                  <p>Nenhum pedido entregue recentemente.</p>
+                ) : (
+                  <table className="table table-dark table-striped">
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                        <th>Pagamento</th>
+                        <th>Entregue em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pedidosEntregues.map(pedido => (
+                        <tr key={pedido._id}>
+                          <td>{pedido.cliente?.nome || '-'}</td>
+                          <td>R$ {pedido.total.toFixed(2)}</td>
+                          <td>{pedido.pagamento?.forma || '-'}</td>
+                          <td>{new Date(pedido.criadoEm).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-// Esse componente exibe um resumo do dashboard com dados de vendas, pedidos e pagamentos
+//     res.json(pedido);
