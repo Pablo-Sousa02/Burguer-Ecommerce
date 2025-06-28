@@ -15,9 +15,11 @@
     const audioRef = useRef(null);
 
     useEffect(() => {
-        const socket = io('http://localhost:5000');
+        const socket = io(process.env.REACT_APP_API_URL, {
+            transports: ['websocket'],
+        });
 
-        fetch('http://localhost:5000/pedidos')
+        fetch(process.env.REACT_APP_API_URL + '/pedidos')
         .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) setPedidos(data);

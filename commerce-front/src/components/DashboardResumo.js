@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
 
 export default function DashboardResumo() {
   // Estados
-  const [pedidos, setPedidos] = useState([]); // todos pedidos
+  const [pedidos,setPedidos] = useState([]); // se quiser usar no futuro
   const [pedidosEntregues, setPedidosEntregues] = useState([]); // só entregues para o modal
   const [modalAberto, setModalAberto] = useState(false);
   const [dados, setDados] = useState({
@@ -51,27 +51,26 @@ export default function DashboardResumo() {
     });
   };
 
-  // Buscar pedidos do backend
-  const fetchPedidos = async () => {
-  try {
-    const resAndamento = await fetch('http://localhost:5000/pedidos?entregue=false');
-    const pedidosEmAndamento = await resAndamento.json();
-
-    const resEntregues = await fetch('http://localhost:5000/pedidos?entregue=true');
-    const pedidosEntregues = await resEntregues.json();
-
-    const todosPedidos = [...pedidosEmAndamento, ...pedidosEntregues];
-
-    setPedidos(todosPedidos);
-    setPedidosEntregues(pedidosEntregues);
-    calcularMetricas(todosPedidos);
-  } catch (error) {
-    console.error('Erro ao buscar pedidos:', error);
-  }
-};
-
-
   useEffect(() => {
+    // Função fetchPedidos movida pra dentro do useEffect para evitar warnings
+    const fetchPedidos = async () => {
+      try {
+        const resAndamento = await fetch(process.env.REACT_APP_API_URL + '/pedidos?entregue=false');
+        const pedidosEmAndamento = await resAndamento.json();
+
+        const resEntregues = await fetch(process.env.REACT_APP_API_URL + '/pedidos?entregue=true');
+        const pedidosEntregues = await resEntregues.json();
+
+        const todosPedidos = [...pedidosEmAndamento, ...pedidosEntregues];
+
+        setPedidos(todosPedidos);
+        setPedidosEntregues(pedidosEntregues);
+        calcularMetricas(todosPedidos);
+      } catch (error) {
+        console.error('Erro ao buscar pedidos:', error);
+      }
+    };
+
     fetchPedidos();
 
     socket.on('pedidoEntregue', (pedidoAtualizado) => {
@@ -99,8 +98,9 @@ export default function DashboardResumo() {
       socket.off('novoPedido');
       socket.disconnect();
     };
-  }, []);
+  }, []); // array vazio OK, porque fetchPedidos está dentro do useEffect
 
+  // JSX do componente permanece o mesmo
   return (
     <div className="text-white">
       {/* Cards métricas */}
@@ -225,4 +225,3 @@ export default function DashboardResumo() {
     </div>
   );
 }
-//     res.json(pedido);

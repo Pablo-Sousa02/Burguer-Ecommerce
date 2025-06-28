@@ -28,7 +28,7 @@
 
     const handleMarcarEntregue = async (id) => {
         try {
-        const res = await fetch(`http://localhost:5000/pedidos/${id}/entregue`, {
+        const res = await fetch(process.env.REACT_APP_API_URL + `/pedidos/${id}/entregue`, {
             method: 'PUT',
         });
 
