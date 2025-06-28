@@ -28,10 +28,10 @@
     connectDB(MONGO_URI);
 
     // Importar rotas (passando io para rotas que precisam emitir eventos)
-    const Pedidos = require('./routes/Pedidos')(io);
+    const pedidos = require('./routes/pedidos')(io);
     const adminRoutes = require('./routes/Admin');
 
-    app.use('/pedidos', Pedidos);
+    app.use('/pedidos', pedidos);
     app.use('/', adminRoutes);
 
     app.get('/', (req, res) => {
