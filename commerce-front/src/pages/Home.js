@@ -8,21 +8,21 @@
             name: 'Hambúrguer Clássico',
             description: 'Pão, hambúrguer, queijo, alface, tomate e maionese.',
             price: 25.0,
-            image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80',
+            image: '/img/Hambúrguerclassico.svg',
         },
         {
             id: 2,
             name: 'Cheeseburguer Duplo',
             description: 'Dois hambúrgueres, queijo extra e bacon.',
             price: 35.0,
-            image: 'https://images.unsplash.com/photo-1550547570-9f85f7e4b1f3?auto=format&fit=crop&w=600&q=80',
+            image: '/img/CheeseburguerDuplo.svg',
         },
         {
             id: 3,
             name: 'Batata Frita',
             description: 'Batata crocante com molho especial.',
             price: 15.0,
-            image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80',
+            image: '/img/batataFrita.svg',
         },
         ];
 

@@ -1,6 +1,4 @@
-    // socket/pedidosSocket.js
-    const Pedidos = require('../models/Pedidos'); // ou '../models/Pedido' dependendo do nome real do arquivo
-
+     const Pedidos = require('../models/Pedidos'); 
     module.exports = function (io) {
     io.on('connection', (socket) => {
         console.log('Novo cliente conectado:', socket.id);
