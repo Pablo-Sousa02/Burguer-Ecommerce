@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { FaShoppingCart } from 'react-icons/fa';
 
@@ -13,6 +13,7 @@ import PrivateRoute from './components/PrivateRoute'; // rota protegida
 function App() {
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [notificacoesAtivadas, setNotificacoesAtivadas] = useState(false);
 
   function handleAddToCart(product, quantity) {
     setCartItems((prev) => {
@@ -33,6 +34,74 @@ function App() {
   }
 
   const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
+
+  useEffect(() => {
+    // Função para converter chave pública VAPID
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    async function registrarServiceWorkerEInscreverPush() {
+      try {
+        if (!('serviceWorker' in navigator)) {
+          console.warn('Service Workers não são suportados neste navegador.');
+          return;
+        }
+
+        if (!('PushManager' in window)) {
+          console.warn('Push messaging não é suportado neste navegador.');
+          return;
+        }
+
+        // Registrar SW
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registrado:', registration);
+
+        // Pedir permissão notificações
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('Permissão para notificações negada');
+          return;
+        }
+        console.log('Permissão para notificações concedida');
+
+        // Inscrever no Push
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY),
+        });
+
+        console.log('Subscription push criada:', subscription);
+
+        // Enviar subscription para backend para salvar
+        await fetch(`${process.env.REACT_APP_API_URL}/save-subscription`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription),
+        });
+
+        setNotificacoesAtivadas(true);
+        console.log('Subscription enviada para backend com sucesso');
+      } catch (error) {
+        console.error('Erro ao registrar service worker ou inscrever no push:', error);
+      }
+    }
+
+    // Você pode decidir se ativa automatico ou espera o usuário clicar
+    registrarServiceWorkerEInscreverPush();
+
+  }, []);
 
   return (
     <Router>
