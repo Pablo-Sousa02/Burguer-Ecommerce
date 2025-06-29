@@ -1,7 +1,6 @@
         import React from 'react';
         import ProductCard from '../components/ProductCard';
-    import { Link } from 'react-router-dom';
-
+        import { Link } from 'react-router-dom';
         const DESTAQUES = [
         {
             id: 1,
@@ -45,7 +44,7 @@
                 </div>
                 <div className="col-md-6">
                 <img
-                    src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80"
+                    src="/img/homeimage.svg"
                     alt="Hamburguer delicioso"
                     className="img-fluid rounded shadow"
                 />

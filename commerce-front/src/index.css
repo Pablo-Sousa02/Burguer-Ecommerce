@@ -1,9 +1,13 @@
 html, body, #root {
-  height: 100%;
   margin: 0;
-  background-color: #1e1e1e; /* cinza escuro, ou outra cor */
-  color: #ffc107; /* amarelo para o texto */
+  padding: 0;
+  min-height: 100dvh; /* usa altura real da tela em dispositivos modernos */
+  background-color: #1e1e1e;
+  color: #ffc107;
+  overflow-x: hidden;
+  overscroll-behavior-y: none; /* evita puxar tela branca em scroll no Safari */
 }
+
 
 
 code {

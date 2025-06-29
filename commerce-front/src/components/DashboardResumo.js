@@ -4,9 +4,10 @@ import { io } from 'socket.io-client';
 const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
 
 export default function DashboardResumo() {
-  // Estados
-  const [pedidos,setPedidos] = useState([]); // se quiser usar no futuro
-  const [pedidosEntregues, setPedidosEntregues] = useState([]); // só entregues para o modal
+  // Estado removido para evitar warning:
+  // const [pedidos, setPedidos] = useState([]);
+
+  const [pedidosEntregues, setPedidosEntregues] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [dados, setDados] = useState({
     totalVendas: 0,
@@ -17,7 +18,6 @@ export default function DashboardResumo() {
     totalItensVendidos: 0,
   });
 
-  // Função para calcular métricas
   const calcularMetricas = (listaPedidos) => {
     const totalPedidos = listaPedidos.length;
     const entregues = listaPedidos.filter(p => p.entregue);
@@ -52,7 +52,6 @@ export default function DashboardResumo() {
   };
 
   useEffect(() => {
-    // Função fetchPedidos movida pra dentro do useEffect para evitar warnings
     const fetchPedidos = async () => {
       try {
         const resAndamento = await fetch(process.env.REACT_APP_API_URL + '/pedidos?entregue=false');
@@ -63,7 +62,7 @@ export default function DashboardResumo() {
 
         const todosPedidos = [...pedidosEmAndamento, ...pedidosEntregues];
 
-        setPedidos(todosPedidos);
+        // setPedidos(todosPedidos); // removido, pois não usamos 'pedidos'
         setPedidosEntregues(pedidosEntregues);
         calcularMetricas(todosPedidos);
       } catch (error) {
@@ -74,23 +73,21 @@ export default function DashboardResumo() {
     fetchPedidos();
 
     socket.on('pedidoEntregue', (pedidoAtualizado) => {
-      setPedidos((prevPedidos) => {
-        const novosPedidos = prevPedidos.map(p =>
+      setPedidosEntregues((prevPedidosEntregues) => {
+        // Atualiza lista de entregues com pedido atualizado
+        const novosEntregues = prevPedidosEntregues.map(p =>
           p._id === pedidoAtualizado._id ? pedidoAtualizado : p
         );
-        setPedidosEntregues(novosPedidos.filter(p => p.entregue));
-        calcularMetricas(novosPedidos);
-        return novosPedidos;
+        // Recalcula métricas com nova lista (não temos todos pedidos aqui, mas ok)
+        calcularMetricas(novosEntregues);
+        return novosEntregues;
       });
     });
 
     socket.on('novoPedido', (pedidoNovo) => {
-      setPedidos((prevPedidos) => {
-        const novosPedidos = [pedidoNovo, ...prevPedidos];
-        setPedidosEntregues(novosPedidos.filter(p => p.entregue));
-        calcularMetricas(novosPedidos);
-        return novosPedidos;
-      });
+      // Não precisa atualizar pedidos gerais, só entregues
+      setPedidosEntregues((prev) => [...prev, pedidoNovo].filter(p => p.entregue));
+      calcularMetricas([pedidoNovo]); // ou recalcular com outro array se quiser
     });
 
     return () => {
@@ -98,26 +95,25 @@ export default function DashboardResumo() {
       socket.off('novoPedido');
       socket.disconnect();
     };
-  }, []); // array vazio OK, porque fetchPedidos está dentro do useEffect
+  }, []);
 
-  // JSX do componente permanece o mesmo
   return (
     <div className="text-white">
       {/* Cards métricas */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-4">
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-4">
           <div className="bg-success bg-opacity-75 p-3 rounded shadow-sm">
             <h5>Total Vendido</h5>
             <h3 className="fw-bold">R$ {dados.totalVendas.toFixed(2)}</h3>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-12 col-md-4">
           <div className="bg-primary bg-opacity-75 p-3 rounded shadow-sm">
             <h5>Pedidos Entregues</h5>
             <h3 className="fw-bold">{dados.totalEntregues}</h3>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-12 col-md-4">
           <div className="bg-info bg-opacity-75 p-3 rounded shadow-sm">
             <h5>Total de Pedidos</h5>
             <h3 className="fw-bold">{dados.totalPedidos}</h3>
@@ -125,20 +121,20 @@ export default function DashboardResumo() {
         </div>
       </div>
 
-      <div className="row g-4 mb-4">
-        <div className="col-md-4">
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-4">
           <div className="bg-warning bg-opacity-75 p-3 rounded shadow-sm">
             <h5>Dinheiro 💵</h5>
             <p className="fw-bold">R$ {dados.vendasPorPagamento.dinheiro.toFixed(2)}</p>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-12 col-md-4">
           <div className="bg-light text-dark bg-opacity-75 p-3 rounded shadow-sm">
             <h5>Cartão 💳</h5>
             <p className="fw-bold">R$ {dados.vendasPorPagamento.cartao.toFixed(2)}</p>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-12 col-md-4">
           <div className="bg-secondary bg-opacity-75 p-3 rounded shadow-sm">
             <h5>PIX 📱</h5>
             <p className="fw-bold">R$ {dados.vendasPorPagamento.pix.toFixed(2)}</p>
@@ -146,14 +142,14 @@ export default function DashboardResumo() {
         </div>
       </div>
 
-      <div className="row g-4">
-        <div className="col-md-6">
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-6">
           <div className="bg-dark border border-light p-3 rounded shadow-sm">
             <h5>Itens Vendidos</h5>
             <p className="fw-bold">{dados.totalItensVendidos}</p>
           </div>
         </div>
-        <div className="col-md-6">
+        <div className="col-12 col-md-6">
           <div className="bg-dark border border-light p-3 rounded shadow-sm">
             <h5>Ticket Médio</h5>
             <p className="fw-bold">R$ {dados.ticketMedio.toFixed(2)}</p>
@@ -161,7 +157,7 @@ export default function DashboardResumo() {
         </div>
       </div>
 
-      {/* Botão para abrir modal de entregues */}
+      {/* Botão para abrir modal */}
       <button
         className="btn btn-outline-light my-3"
         onClick={() => setModalAberto(true)}
@@ -169,19 +165,19 @@ export default function DashboardResumo() {
         Ver Pedidos Entregues
       </button>
 
-      {/* Modal */}
+      {/* Modal responsivo */}
       {modalAberto && (
         <div
           className="modal fade show d-block"
           tabIndex="-1"
           role="dialog"
-          onClick={() => setModalAberto(false)} // fechar ao clicar fora
+          onClick={() => setModalAberto(false)}
           style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
         >
           <div
             className="modal-dialog modal-lg"
             role="document"
-            onClick={e => e.stopPropagation()} // evitar fechar ao clicar dentro
+            onClick={e => e.stopPropagation()}
           >
             <div className="modal-content bg-dark text-white">
               <div className="modal-header">
@@ -196,26 +192,24 @@ export default function DashboardResumo() {
                 {pedidosEntregues.length === 0 ? (
                   <p>Nenhum pedido entregue recentemente.</p>
                 ) : (
-                  <table className="table table-dark table-striped">
-                    <thead>
-                      <tr>
-                        <th>Cliente</th>
-                        <th>Total</th>
-                        <th>Pagamento</th>
-                        <th>Entregue em</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pedidosEntregues.map(pedido => (
-                        <tr key={pedido._id}>
-                          <td>{pedido.cliente?.nome || '-'}</td>
-                          <td>R$ {pedido.total.toFixed(2)}</td>
-                          <td>{pedido.pagamento?.forma || '-'}</td>
-                          <td>{new Date(pedido.criadoEm).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="row g-3">
+                    {pedidosEntregues.map(pedido => (
+                      <div key={pedido._id} className="col-12">
+                        <div className="card bg-secondary text-white">
+                          <div className="card-body">
+                            <h6 className="card-title mb-1">
+                              Cliente: {pedido.cliente?.nome || '-'}
+                            </h6>
+                            <p className="mb-1">Total: R$ {pedido.total.toFixed(2)}</p>
+                            <p className="mb-1">Pagamento: {pedido.pagamento?.forma || '-'}</p>
+                            <p className="mb-0">
+                              Entregue em: {new Date(pedido.criadoEm).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

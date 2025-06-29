@@ -32,7 +32,7 @@
         name: 'Batata Frita',
         description: 'Batata crocante com molho especial.',
         price: 15.0,
-        image: '/img/BatataFrita.svg',
+        image: '/img/batatafrita.svg',
         },
         {
         id: 4,

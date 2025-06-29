@@ -4,6 +4,7 @@
     const http = require('http');
     const { Server } = require('socket.io');
     const connectDB = require('./config/db');
+    const webpush = require('web-push');
 
     const app = express();
     const server = http.createServer(app);
@@ -20,6 +21,16 @@
     // Importa o model Pedido
     const Pedido = require('./models/Pedidos');
 
+    // Configurar VAPID do web-push (chaves no .env)
+    webpush.setVapidDetails(
+    'mailto:pablooficial22@hotmail.com', // <-- substitua pelo seu email real
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+    );
+
+    // Array temporário para armazenar subscriptions
+    const subscriptions = [];
+
     // Middleware
     app.use(cors());
     app.use(express.json());
@@ -28,11 +39,57 @@
     connectDB(MONGO_URI);
 
     // Importar rotas (passando io para rotas que precisam emitir eventos)
-    const pedidos = require('./routes/pedidos')(io);
+    const pedidosRoutes = require('./routes/pedidos')(io);
     const adminRoutes = require('./routes/Admin');
 
-    app.use('/pedidos', pedidos);
+    app.use('/pedidos', pedidosRoutes);
     app.use('/', adminRoutes);
+
+    // Endpoint para salvar subscription do push
+    app.post('/save-subscription', (req, res) => {
+    const subscription = req.body;
+
+    // Evitar duplicação
+    const exists = subscriptions.find(
+        (sub) => JSON.stringify(sub) === JSON.stringify(subscription)
+    );
+    if (!exists) subscriptions.push(subscription);
+
+    console.log('Subscription salva:', subscription);
+
+    res.status(201).json({ message: 'Subscription salva com sucesso' });
+    });
+
+    // Endpoint para criar pedido com notificação push
+    app.post('/pedidos', async (req, res) => {
+    const novoPedido = req.body;
+
+    try {
+        // Salvar no banco
+        const pedidoCriado = await Pedido.create(novoPedido);
+
+        // Emitir evento socket para front-end
+        io.emit('novoPedido', pedidoCriado);
+
+        // Payload da notificação push
+        const payload = JSON.stringify({
+        title: 'Novo Pedido!',
+        message: `Pedido de ${pedidoCriado.cliente?.nome || 'Cliente'} recebido.`,
+        });
+
+        // Enviar notificação para todas as subscriptions
+        subscriptions.forEach((sub) => {
+        webpush.sendNotification(sub, payload).catch((err) => {
+            console.error('Erro ao enviar notificação push:', err);
+        });
+        });
+
+        res.status(201).json(pedidoCriado);
+    } catch (error) {
+        console.error('Erro ao criar pedido:', error);
+        res.status(500).json({ error: 'Erro ao criar pedido' });
+    }
+    });
 
     app.get('/', (req, res) => {
     res.send('API Burguer Rodando!');
