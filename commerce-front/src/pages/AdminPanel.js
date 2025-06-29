@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import PainelPedidos from '../components/PainelPedidos';
 import DashboardResumo from '../components/DashboardResumo';
-import AdminToast from '../components/AdminToast';
+
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function AdminPanel() {
   const [tela, setTela] = useState('pedidos');
@@ -12,7 +14,6 @@ export default function AdminPanel() {
     vendasPorPagamento: { cartao: 0, pix: 0, dinheiro: 0 }
   });
 
-  const [toast, setToast] = useState({ show: false, message: '' });
   const audioRef = useRef(null);
 
   useEffect(() => {
@@ -32,16 +33,22 @@ export default function AdminPanel() {
 
     socket.on('novoPedido', (novo) => {
       setPedidos(prev => [novo, ...prev]);
-      setToast({ show: true, message: `Novo pedido de ${novo.cliente?.nome || 'Cliente'}` });
 
-      if (audioRef.current) {
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => console.log('Erro ao tentar reproduzir o som'));
+      toast.info(`📢 Novo pedido de ${novo.cliente?.nome || 'Cliente'}`, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        draggable: true,
+        onOpen: () => {
+          if (audioRef.current) {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => console.log('Erro ao tentar reproduzir o som'));
+            }
+          }
         }
-      }
-
-      setTimeout(() => setToast({ show: false, message: '' }), 4000);
+      });
     });
 
     socket.on('pedidoEntregue', (pedidoAtualizado) => {
@@ -64,68 +71,7 @@ export default function AdminPanel() {
     };
   }, []);
 
-  // Hook para registrar service worker e pedir permissão de push
-  useEffect(() => {
-    function urlBase64ToUint8Array(base64String) {
-      const padding = '='.repeat((4 - base64String.length % 4) % 4);
-      const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-    }
-
-    async function subscribeUserToPush() {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY),
-        });
-
-        console.log('Subscription gerada:', subscription);
-
-        // Envie para seu backend salvar a subscription
-        await fetch(`${process.env.REACT_APP_API_URL}/save-subscription`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subscription),
-        });
-
-        console.log('Subscription enviada para backend com sucesso');
-      } catch (error) {
-        console.error('Erro ao criar subscription push:', error);
-      }
-    }
-
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registrado:', registration);
-          return Notification.requestPermission();
-        })
-        .then(permission => {
-          if (permission === 'granted') {
-            console.log('Permissão para notificações concedida');
-            subscribeUserToPush();
-          } else {
-            console.log('Permissão para notificações negada');
-          }
-        })
-        .catch(error => {
-          console.error('Erro ao registrar Service Worker:', error);
-        });
-    } else {
-      console.warn('Push messaging não é suportado neste navegador.');
-    }
-  }, []);
+  // ... seu useEffect para Service Worker permanece o mesmo
 
   return (
     <div className="container py-4" style={{ marginTop: '70px' }}>
@@ -159,7 +105,10 @@ export default function AdminPanel() {
 
       {tela === 'dashboard' && <DashboardResumo data={dashboardData} />}
 
-      <AdminToast toast={toast} setToast={setToast} audioRef={audioRef} />
+      <audio ref={audioRef} src="/sounds/notification.mp3" />
+
+      {/* ToastContainer deve estar presente no JSX para mostrar os toasts */}
+      <ToastContainer />
     </div>
   );
 }

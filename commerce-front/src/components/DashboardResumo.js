@@ -1,26 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
 const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
 
 export default function DashboardResumo() {
-  // Estado removido para evitar warning:
-  // const [pedidos, setPedidos] = useState([]);
-
-  const [pedidosEntregues, setPedidosEntregues] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
-  const [dados, setDados] = useState({
-    totalVendas: 0,
-    totalPedidos: 0,
-    totalEntregues: 0,
-    vendasPorPagamento: { dinheiro: 0, cartao: 0, pix: 0 },
-    ticketMedio: 0,
-    totalItensVendidos: 0,
-  });
 
-  const calcularMetricas = (listaPedidos) => {
-    const totalPedidos = listaPedidos.length;
-    const entregues = listaPedidos.filter(p => p.entregue);
+  // Usar useMemo para calcular dados derivados, só recalcula quando "pedidos" muda
+  const dados = useMemo(() => {
+    const totalPedidos = pedidos.length;
+    const entregues = pedidos.filter(p => p.entregue);
     const totalEntregues = entregues.length;
     const totalVendas = entregues.reduce((acc, p) => acc + (p.total || 0), 0);
     const vendasPorPagamento = { dinheiro: 0, cartao: 0, pix: 0 };
@@ -41,18 +31,21 @@ export default function DashboardResumo() {
 
     const ticketMedio = totalEntregues > 0 ? totalVendas / totalEntregues : 0;
 
-    setDados({
+    return {
       totalVendas,
       totalPedidos,
       totalEntregues,
       vendasPorPagamento,
       ticketMedio,
       totalItensVendidos,
-    });
-  };
+    };
+  }, [pedidos]);
+
+  // Pedidos entregues para modal
+  const pedidosEntregues = useMemo(() => pedidos.filter(p => p.entregue), [pedidos]);
 
   useEffect(() => {
-    const fetchPedidos = async () => {
+    async function fetchPedidos() {
       try {
         const resAndamento = await fetch(process.env.REACT_APP_API_URL + '/pedidos?entregue=false');
         const pedidosEmAndamento = await resAndamento.json();
@@ -60,34 +53,22 @@ export default function DashboardResumo() {
         const resEntregues = await fetch(process.env.REACT_APP_API_URL + '/pedidos?entregue=true');
         const pedidosEntregues = await resEntregues.json();
 
-        const todosPedidos = [...pedidosEmAndamento, ...pedidosEntregues];
-
-        // setPedidos(todosPedidos); // removido, pois não usamos 'pedidos'
-        setPedidosEntregues(pedidosEntregues);
-        calcularMetricas(todosPedidos);
+        setPedidos([...pedidosEmAndamento, ...pedidosEntregues]);
       } catch (error) {
         console.error('Erro ao buscar pedidos:', error);
       }
-    };
+    }
 
     fetchPedidos();
 
     socket.on('pedidoEntregue', (pedidoAtualizado) => {
-      setPedidosEntregues((prevPedidosEntregues) => {
-        // Atualiza lista de entregues com pedido atualizado
-        const novosEntregues = prevPedidosEntregues.map(p =>
-          p._id === pedidoAtualizado._id ? pedidoAtualizado : p
-        );
-        // Recalcula métricas com nova lista (não temos todos pedidos aqui, mas ok)
-        calcularMetricas(novosEntregues);
-        return novosEntregues;
-      });
+      setPedidos((prevPedidos) =>
+        prevPedidos.map(p => (p._id === pedidoAtualizado._id ? pedidoAtualizado : p))
+      );
     });
 
     socket.on('novoPedido', (pedidoNovo) => {
-      // Não precisa atualizar pedidos gerais, só entregues
-      setPedidosEntregues((prev) => [...prev, pedidoNovo].filter(p => p.entregue));
-      calcularMetricas([pedidoNovo]); // ou recalcular com outro array se quiser
+      setPedidos((prevPedidos) => [pedidoNovo, ...prevPedidos]);
     });
 
     return () => {
