@@ -4,8 +4,8 @@
     const title = data.title || 'Nova Notificação';
     const options = {
         body: data.message || 'Você tem uma nova notificação.',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/icons/icon.png',
+        badge: '/icons/icon.png',
         vibrate: [200, 100, 200], // padrão de vibração: vibrar 200ms, pausa 100ms, vibrar 200ms
         sound: 'public/sounds/notification.mp3', // OBS: som em notificações push nem sempre funciona no navegador, mas colocamos
         actions: [
