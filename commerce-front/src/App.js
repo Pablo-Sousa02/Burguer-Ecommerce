@@ -8,12 +8,13 @@ import Cardapio from './pages/Cardapio';
 import CartSideBar from './components/CartSideBar';
 import Checkout from './pages/Checkout';
 import AdminPanel from './pages/AdminPanel';
-import PrivateRoute from './components/PrivateRoute'; // rota protegida
+import PrivateRoute from './components/PrivateRoute';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [notificacoesAtivadas, setNotificacoesAtivadas] = useState(false);
+
+  const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY;
 
   function handleAddToCart(product, quantity) {
     setCartItems((prev) => {
@@ -36,16 +37,14 @@ function App() {
   const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   useEffect(() => {
-    // Função para converter chave pública VAPID
     function urlBase64ToUint8Array(base64String) {
+      if (!base64String) {
+        throw new Error("A chave pública VAPID está indefinida ou vazia.");
+      }
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
-      const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
       const rawData = window.atob(base64);
       const outputArray = new Uint8Array(rawData.length);
-
       for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
       }
@@ -64,11 +63,14 @@ function App() {
           return;
         }
 
-        // Registrar SW
+        if (!VAPID_PUBLIC_KEY) {
+          console.error("A chave VAPID pública não está definida no .env.");
+          return;
+        }
+
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registrado:', registration);
 
-        // Pedir permissão notificações
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           console.log('Permissão para notificações negada');
@@ -76,32 +78,27 @@ function App() {
         }
         console.log('Permissão para notificações concedida');
 
-        // Inscrever no Push
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
 
         console.log('Subscription push criada:', subscription);
 
-        // Enviar subscription para backend para salvar
         await fetch(`${process.env.REACT_APP_API_URL}/save-subscription`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(subscription),
         });
 
-        setNotificacoesAtivadas(true);
         console.log('Subscription enviada para backend com sucesso');
       } catch (error) {
-        console.error('Erro ao registrar service worker ou inscrever no push:', error);
+        console.error('Erro ao registrar service worker ou inscrever no push:', error.message, error);
       }
     }
 
-    // Você pode decidir se ativa automatico ou espera o usuário clicar
     registrarServiceWorkerEInscreverPush();
-
-  }, []);
+  }, [VAPID_PUBLIC_KEY]);
 
   return (
     <Router>
