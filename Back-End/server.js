@@ -115,7 +115,7 @@
     };
 
     // Roda a cada 1 hora (3600000 ms)
-    setInterval(removerPedidosAntigos, 3600000);
+    setInterval(removerPedidosAntigos, 18000);
 
     // Inicia o servidor
     server.listen(PORT, () => {
