@@ -73,9 +73,12 @@
 
         // Payload da notificação push
         const payload = JSON.stringify({
-        title: 'Novo Pedido!',
-        message: `Pedido de ${pedidoCriado.cliente?.nome || 'Cliente'} recebido.`,
-        });
+  title: 'Novo Pedido!',
+  message: `Pedido de ${pedidoCriado.cliente?.nome || 'Cliente'} recebido.`,
+  icon: '/icons/icon-192.png',
+  url: '/admin'
+});
+
 
         // Enviar notificação para todas as subscriptions
         subscriptions.forEach((sub) => {
