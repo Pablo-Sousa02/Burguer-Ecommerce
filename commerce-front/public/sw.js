@@ -4,20 +4,20 @@
     const title = data.title || 'Nova Notificação';
     const options = {
         body: data.message || 'Você tem uma nova notificação.',
-        icon: '/icons/icon.png',
-        badge: '/icons/icon.png',
+        icon: '/icon.png',
+        badge: '/icon.png',
         vibrate: [200, 100, 200], // padrão de vibração: vibrar 200ms, pausa 100ms, vibrar 200ms
-        sound: 'public/sounds/notification.mp3', // OBS: som em notificações push nem sempre funciona no navegador, mas colocamos
+        sound: '/sounds/notification.mp3', // OBS: som em notificações push nem sempre funciona no navegador, mas colocamos
         actions: [
         {
             action: 'open_admin',
             title: 'Abrir painel',
-            icon: '/icons/open-icon.png' // coloque um ícone menor para a ação
+            icon: 'icons/open-icon.png' // coloque um ícone menor para a ação
         },
         {
             action: 'dismiss',
             title: 'Fechar',
-            icon: '/icons/close-icon.png'
+            icon: 'icons/close-icon.png'
         }
         ],
         data: {
